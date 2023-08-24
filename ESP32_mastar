@@ -1,0 +1,73 @@
+#ESP32の親（サメ側）（Arduino）
+
+#include <esp32cam.h>
+#include <ESP32Servo.h>
+#include "BluetoothSerial.h"
+ 
+#define SERVO_PIN 13
+#define REED_PIN 14
+ 
+BluetoothSerial SerialBT;
+
+Servo myServo;
+
+String MACadd = "A8:42:E3:C6:1E:0A";
+uint8_t address[6]  = {0xA8, 0x42, 0xE3, 0xC6, 0x1E, 0x0A};
+
+bool connected;
+ 
+void  setup(){
+  Serial.begin(115200);
+  SerialBT.begin("ESP32test", true); 
+  Serial.println("device start");
+
+  myServo.attach(SERVO_PIN);
+
+  connected = SerialBT.connect(address);
+  if(connected) {
+    Serial.println("Connect OK");
+  } else {
+    while(!SerialBT.connected(10000)) {
+      Serial.println("No connect"); 
+    }
+  }
+
+  if (SerialBT.disconnect()) {
+    Serial.println("Disconnected Succesfully!");
+  }
+
+  SerialBT.connect();
+
+  pinMode(REED_PIN, INPUT_PULLUP);
+
+  Serial.println();
+}
+
+char databox;
+void loop()
+{
+  if (digitalRead(REED_PIN) == LOW) {
+    SerialBT.write('T');
+  }
+  if (digitalRead(REED_PIN) == HIGH) {
+    SerialBT.write('L');
+  }
+
+  if (SerialBT.available()) {
+    databox = SerialBT.read();
+    Serial.println(databox);
+
+    if (databox == 'O') {
+      for(int i = 0; i < 46; i++) {
+        myServo.write(i);
+        delay(10);
+      }
+    }
+    if (databox == 'C') {
+      for(int i = 45; i >= 0; i--) {
+        myServo.write(i);
+        delay(10);
+      }
+    }
+  }
+}
